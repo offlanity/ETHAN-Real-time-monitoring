@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#202923">
+  <title>E.T.H.A.N | Room Monitor</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #000000;
+      --muted: #747a71;
+      --paper: #eeeee7;
+      --panel: #fbfbf7;
+      --line: #d9dbd1;
+      --green: #000000;
+      --lime: #7274ef;
+      --red: #fa2c0d;
+      --amber: #d38a32;
+      --mono: Consolas, "Liberation Mono", monospace;
+      --sans: "Trebuchet MS", "Segoe UI", sans-serif;
+      --serif: Georgia, "Times New Roman", serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); }
+    button, select { font: inherit; }
+    .topbar { min-height: 76px; padding: 0 4.5vw; display: flex; align-items: center; justify-content: space-between; gap: 20px; background: var(--ink); color: #f6f5ee; }
+    .brand { display: flex; align-items: center; gap: 13px; }
+    .brand-mark { width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid var(--lime); color: var(--lime); font: 17px var(--mono); }
+    .brand-name { font: 20px var(--serif); letter-spacing: 0; }
+    .brand-sub { margin-top: 3px; color: #aeb6aa; font: 10px var(--mono); letter-spacing: 0; text-transform: uppercase; }
+    .top-actions { display: flex; align-items: center; gap: 24px; }
+    .connection { display: flex; align-items: center; gap: 8px; color: #c9cec6; font: 11px var(--mono); text-transform: uppercase; }
+    .lamp { width: 8px; height: 8px; border-radius: 50%; background: #e2a242; box-shadow: 0 0 0 4px #e2a24222; }
+    .lamp.online { background: var(--lime); box-shadow: 0 0 0 4px #d7ef7222; }
+    .clock { color: #aeb6aa; font: 11px var(--mono); }
+    main { width: min(1440px, 92vw); margin: 28px auto 50px; animation: arrive .45s ease-out both; }
+    .page-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 18px; }
+    .eyebrow { color: var(--green); font: 11px var(--mono); text-transform: uppercase; }
+    h1 { margin: 7px 0 0; font: 36px var(--serif); letter-spacing: 0; }
+    .room-control { display: flex; align-items: center; gap: 10px; color: var(--muted); font: 11px var(--mono); text-transform: uppercase; }
+    select { min-height: 38px; padding: 0 34px 0 12px; border: 1px solid var(--line); border-radius: 2px; background: var(--panel); color: var(--ink); }
+    .overview { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(280px, .8fr); gap: 16px; }
+    .feed-panel { min-width: 0; background: #171d19; color: #f5f4ec; }
+    .panel-head { min-height: 53px; padding: 0 17px; display: flex; align-items: center; justify-content: space-between; gap: 15px; border-bottom: 1px solid #ffffff1c; }
+    .panel-label { font: 11px var(--mono); text-transform: uppercase; letter-spacing: 0; }
+    .feed-meta { display: flex; gap: 16px; color: #aeb6aa; font: 10px var(--mono); }
+    .feed-wrap { position: relative; aspect-ratio: 16 / 9; min-height: 230px; overflow: hidden; background: radial-gradient(ellipse at center, #313a32 0%, #202722 48%, #171d19 100%); }
+    .feed-wrap::before { position: absolute; inset: 0; z-index: 0; content: ""; opacity: .18; background-image: linear-gradient(#8d9c8c22 1px, transparent 1px), linear-gradient(90deg, #8d9c8c22 1px, transparent 1px); background-size: 32px 32px; }
+    #feed { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+    .feed-placeholder { position: absolute; z-index: 2; inset: 0; display: grid; place-content: center; gap: 7px; text-align: center; color: #dce1d7; pointer-events: none; }
+    .feed-placeholder[hidden] { display: none; }
+    .feed-placeholder strong { font: 17px var(--serif); }
+    .feed-placeholder span { color: #aeb6aa; font: 10px var(--mono); }
+    .feed-tag { position: absolute; z-index: 3; top: 13px; left: 14px; display: flex; align-items: center; gap: 8px; padding: 7px 9px; background: #151a17d9; font: 10px var(--mono); }
+    .feed-tag .lamp { width: 6px; height: 6px; }
+    .side-stack { display: grid; grid-template-rows: 1fr 1fr; gap: 16px; }
+    .metric-panel { padding: 18px 19px; display: flex; flex-direction: column; justify-content: space-between; min-height: 145px; background: var(--panel); border: 1px solid var(--line); }
+    .metric-panel.alert-metric { border-top: 3px solid var(--red); }
+    .metric-name { color: var(--muted); font: 10px var(--mono); text-transform: uppercase; }
+    .metric-value { margin-top: 12px; font: 46px var(--serif); line-height: 1; }
+    .metric-foot { color: var(--muted); font-size: 12px; }
+    .metric-panel.alert-metric .metric-value { color: var(--red); }
+    .lower-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(320px, .9fr); gap: 16px; margin-top: 16px; }
+    .surface { min-width: 0; background: var(--panel); border: 1px solid var(--line); }
+    .surface .panel-head { min-height: 54px; border-bottom: 1px solid var(--line); }
+    .surface .panel-label { color: var(--green); }
+    .subtle { color: var(--muted); font: 10px var(--mono); }
+    .table-scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th { padding: 11px 15px; color: var(--muted); font: 9px var(--mono); text-transform: uppercase; white-space: nowrap; }
+    td { padding: 12px 15px; border-top: 1px solid #e8e9e1; font-size: 12px; }
+    td:first-child { font-weight: 700; }
+    .pill { display: inline-flex; align-items: center; min-height: 23px; padding: 0 8px; border-radius: 2px; background: #e6e9e0; color: var(--green); font: 10px var(--mono); white-space: nowrap; }
+    .pill.warning { background: #f8e4d6; color: #9c3b2c; }
+    .pill.unknown { background: #fff0d4; color: #81520f; }
+    .empty { padding: 27px 15px; color: var(--muted); font: 12px var(--mono); text-align: center; }
+    .roster-select { min-height: 30px; padding: 0 25px 0 8px; font-size: 11px; }
+    .roster-foot { padding: 12px 15px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--line); }
+    .save-button, .clear-button { min-height: 34px; padding: 0 12px; border: 0; border-radius: 2px; background: var(--green); color: white; font: 10px var(--mono); text-transform: uppercase; cursor: pointer; }
+    .save-button:hover { background: #32654e; }
+    .clear-button { padding: 0; background: transparent; color: var(--muted); }
+    .clear-button:hover { color: var(--red); }
+    .save-state { min-height: 15px; color: var(--muted); font: 10px var(--mono); }
+    .event-list { max-height: 310px; overflow-y: auto; }
+    .event-row { padding: 13px 15px; display: grid; grid-template-columns: 58px 1fr; gap: 10px; border-top: 1px solid #e8e9e1; }
+    .event-time { color: var(--muted); font: 10px var(--mono); }
+    .event-title { font-size: 12px; font-weight: 700; }
+    .event-person { margin-top: 4px; color: var(--muted); font-size: 11px; }
+    .event-row.unknown-event { border-left: 3px solid var(--amber); }
+    .event-row.section-event { border-left: 3px solid var(--red); }
+    .event-row.appearance-event { border-left: 3px solid #7274ef; }
+    .footnote { margin: 17px 2px 0; color: var(--muted); font: 10px var(--mono); }
+    @keyframes arrive { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+    @media (max-width: 900px) {
+      main { width: min(100% - 28px, 680px); margin-top: 20px; }
+      .overview, .lower-grid { grid-template-columns: 1fr; }
+      .side-stack { grid-template-columns: 1fr 1fr; grid-template-rows: auto; }
+      .metric-panel { min-height: 126px; }
+    }
+    @media (max-width: 560px) {
+      .topbar { min-height: 66px; padding: 0 15px; }
+      .top-actions { gap: 12px; }
+      .clock { display: none; }
+      main { width: calc(100% - 24px); }
+      .page-heading { align-items: start; flex-direction: column; }
+      h1 { font-size: 30px; }
+      .room-control { width: 100%; justify-content: space-between; }
+      .side-stack { gap: 9px; }
+      .metric-panel { min-height: 115px; padding: 13px; }
+      .metric-value { font-size: 38px; }
+      .feed-wrap { min-height: 205px; }
+      .feed-meta { gap: 8px; font-size: 9px; }
+      .panel-head { padding: 0 12px; }
+      th, td { padding-right: 10px; padding-left: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">E.</div>
+      <div><div class="brand-name">E.T.H.A.N</div><div class="brand-sub">Classroom field monitor</div></div>
+    </div>
+    <div class="top-actions">
+      <div class="connection"><span class="lamp" id="connectionLamp"></span><span id="connectionText">Connecting</span></div>
+      <div class="clock" id="clock"></div>
+    </div>
+  </header>
+
+  <main>
+    <div class="page-heading">
+      <div><div class="eyebrow">Live room / access watch</div><h1>Room monitor</h1></div>
+      <label class="room-control">Camera room
+        <select id="roomSection" aria-label="Camera room section">
+          <option value="A">Section A</option><option value="B">Section B</option>
+        </select>
+      </label>
+    </div>
+
+    <section class="overview">
+      <div class="feed-panel">
+        <div class="panel-head"><span class="panel-label">Camera feed</span><div class="feed-meta"><span id="feedSection">ROOM A</span><span id="feedFps">-- FPS</span></div></div>
+        <div class="feed-wrap">
+          <div class="feed-placeholder" id="feedPlaceholder"><strong>Waiting for camera</strong><span>LIVE IMAGE WILL APPEAR WHEN THE APP STARTS</span></div>
+          <img id="feed" alt="Live camera feed">
+          <div class="feed-tag"><span class="lamp" id="feedLamp"></span><span id="feedStatus">NO SIGNAL</span></div>
+        </div>
+      </div>
+      <div class="side-stack">
+        <div class="metric-panel alert-metric"><div class="metric-name">Active alerts</div><div class="metric-value" id="alertCount">0</div><div class="metric-foot">Unknown, section mismatch, or possible visual cues</div></div>
+        <div class="metric-panel"><div class="metric-name">Registered roster</div><div class="metric-value" id="registeredCount">0</div><div class="metric-foot">Enrolled identities in this camera</div></div>
+      </div>
+    </section>
+
+    <section class="lower-grid">
+      <div class="surface">
+        <div class="panel-head"><span class="panel-label">People &amp; section roster</span><span class="subtle" id="detectionCount">0 PRESENT</span></div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Identity</th><th>Section</th><th>Match</th><th>Motion</th><th>Roster assignment</th></tr></thead>
+            <tbody id="peopleBody"><tr><td colspan="5" class="empty">No faces in view</td></tr></tbody>
+          </table>
+        </div>
+        <div class="roster-foot"><span class="save-state" id="saveState">Roster changes are local to this machine.</span><button class="save-button" id="saveConfig">Save settings</button></div>
+      </div>
+      <div class="surface">
+        <div class="panel-head"><span class="panel-label">Recent alerts</span><button class="clear-button" id="clearEvents">Clear log</button></div>
+        <div class="event-list" id="eventList"><div class="empty">No alerts recorded</div></div>
+      </div>
+    </section>
+    <p class="footnote">Appearance alerts are rough pixel-based cues only. Dark clothing or a possible face covering does not indicate malicious intent; confirm any alert independently.</p>
+
+  </main>
+
+  <script>
+    const feed = document.getElementById('feed');
+    const roomSection = document.getElementById('roomSection');
+    const saveState = document.getElementById('saveState');
+    let latest = null;
+    let dirty = false;
+    let rosterSignature = '';
+
+    feed.src = '/stream.mjpg';
+    feed.onload = () => { document.getElementById('feedPlaceholder').hidden = true; };
+    feed.onerror = () => { document.getElementById('feedPlaceholder').hidden = false; };
+    document.getElementById('clock').textContent = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date());
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+    }
+
+    function renderPeople(state) {
+      const body = document.getElementById('peopleBody');
+      if (body.contains(document.activeElement) && document.activeElement.matches('select[data-person-index]')) return;
+      const detections = state.detections;
+      document.getElementById('detectionCount').textContent = `${detections.length} PRESENT`;
+      const previousAssignments = new Map([...body.querySelectorAll('select[data-person-index]')]
+        .map(select => [Number(select.dataset.personIndex), select.value]));
+      const detectionsByName = new Map(detections.map(item => [item.name.toLocaleLowerCase(), item]));
+      const rows = state.people.map((person, index) => ({
+        name: person.name,
+        section: person.section,
+        personIndex: index,
+        item: detectionsByName.get(person.name.toLocaleLowerCase()),
+      }));
+      const rosterNames = new Set(state.people.map(person => person.name.toLocaleLowerCase()));
+      for (const item of detections) {
+        if (!rosterNames.has(item.name.toLocaleLowerCase())) rows.push({ name: item.name, section: null, item });
+      }
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="5" class="empty">No registered identities or detections</td></tr>';
+        return;
+      }
+      body.innerHTML = rows.map(row => {
+        const item = row.item;
+        const recognized = item ? item.recognized : true;
+        const alert = item ? item.alert : null;
+        const badge = alert === 'unknown' ? '<span class="pill unknown">UNREGISTERED</span>'
+          : alert === 'section_mismatch' ? '<span class="pill warning">SECTION MISMATCH</span>'
+          : alert === 'appearance' ? '<span class="pill warning">POSSIBLE VISUAL CUE</span>'
+          : recognized && !row.section ? '<span class="pill warning">SET SECTION</span>'
+          : recognized ? '<span class="pill">ON ROSTER</span>' : '<span class="pill unknown">UNREGISTERED</span>';
+        const section = row.section ? `SECTION ${escapeHtml(row.section)}` : (recognized ? 'UNASSIGNED' : '—');
+        const selected = previousAssignments.has(row.personIndex) ? previousAssignments.get(row.personIndex) : (row.section || '');
+        const assignment = row.personIndex !== undefined ? `<select class="roster-select" data-person-index="${row.personIndex}" aria-label="Section for ${escapeHtml(row.name)}"><option value="" ${selected === '' ? 'selected' : ''}>Unassigned</option><option value="A" ${selected === 'A' ? 'selected' : ''}>Section A</option><option value="B" ${selected === 'B' ? 'selected' : ''}>Section B</option></select>` : '—';
+        const match = item && item.recognized ? `${Math.round(item.score * 100)}%` : '—';
+        const cueLabels = {
+          possible_dark_clothing: 'Possible dark clothing',
+          possible_face_covering: 'Possible face covering',
+        };
+        const cueText = item ? item.appearance_cues.map(cue => cueLabels[cue]).filter(Boolean).join(', ') : '';
+        const motion = item ? `${escapeHtml(item.status)} · ${item.speed.toFixed(2)} m/s${cueText ? `<br><span class="subtle">${escapeHtml(cueText)} (heuristic)</span>` : ''}` : '—';
+        return `<tr><td>${escapeHtml(row.name)}</td><td>${section}</td><td>${badge}</td><td>${motion}</td><td>${assignment}</td></tr>`;
+      }).join('');
+      body.querySelectorAll('select').forEach(select => select.addEventListener('change', () => { dirty = true; saveState.textContent = 'Unsaved roster changes'; }));
+    }
+
+    document.getElementById('peopleBody').addEventListener('focusout', () => {
+      requestAnimationFrame(() => { if (latest) renderPeople(latest); });
+    });
+
+    function renderEvents(events) {
+      const list = document.getElementById('eventList');
+      list.innerHTML = events.length ? events.map(event => {
+        const className = event.type === 'section_mismatch' ? 'section-event'
+          : event.type === 'appearance' ? 'appearance-event' : 'unknown-event';
+        return `<div class="event-row ${className}"><div class="event-time">${escapeHtml(event.time)}</div><div><div class="event-title">${escapeHtml(event.title)}</div><div class="event-person">${escapeHtml(event.name)}</div></div></div>`;
+      }).join('') : '<div class="empty">No alerts recorded</div>';
+    }
+
+    function render(state) {
+      latest = state;
+      document.getElementById('connectionLamp').classList.add('online');
+      document.getElementById('connectionText').textContent = 'System online';
+      document.getElementById('feedPlaceholder').hidden = state.frame_available;
+      document.getElementById('feedLamp').classList.toggle('online', state.frame_available);
+      document.getElementById('feedStatus').textContent = state.frame_available ? 'LIVE' : 'NO SIGNAL';
+      document.getElementById('feedSection').textContent = `ROOM ${state.room_section}`;
+      document.getElementById('feedFps').textContent = `${state.fps.toFixed(1)} FPS`;
+      document.getElementById('alertCount').textContent = state.active_alert_count;
+      document.getElementById('registeredCount').textContent = state.registered_count;
+      if (!dirty && document.activeElement !== roomSection) roomSection.value = state.room_section;
+      renderPeople(state);
+      renderEvents(state.events);
+    }
+
+    async function refresh() {
+      try {
+        const response = await fetch('/api/state', { cache: 'no-store' });
+        if (!response.ok) throw new Error('Dashboard state unavailable');
+        render(await response.json());
+      } catch (_error) {
+        document.getElementById('connectionLamp').classList.remove('online');
+        document.getElementById('connectionText').textContent = 'Reconnecting';
+      }
+    }
+
+    document.getElementById('saveConfig').addEventListener('click', async () => {
+      if (!latest) return;
+      const selects = document.querySelectorAll('#peopleBody select[data-person-index]');
+      const members = Object.fromEntries(latest.people.map((person, index) => {
+        const select = [...selects].find(option => Number(option.dataset.personIndex) === index);
+        return [person.name, select ? select.value : (person.section || '')];
+      }));
+      try {
+        const response = await fetch('/api/config', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ room_section: roomSection.value, members }) });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Save failed');
+        dirty = false;
+        saveState.textContent = 'Settings saved';
+        await refresh();
+      } catch (error) {
+        saveState.textContent = error.message;
+      }
+    });
+
+    document.getElementById('clearEvents').addEventListener('click', async () => {
+      await fetch('/api/events/clear', { method: 'POST' });
+      await refresh();
+    });
+
+    roomSection.addEventListener('change', () => { dirty = true; saveState.textContent = 'Unsaved room setting'; });
+    refresh();
+    setInterval(refresh, 900);
+  </script>
+</body>
+</html>

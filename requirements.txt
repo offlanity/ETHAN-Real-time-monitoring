@@ -1,0 +1,12 @@
+# Real-time Face Recognition — dependencies
+#
+# GPU support (optional, much faster):
+#   1. Uninstall:  pip uninstall onnxruntime
+#   2. Install:    pip install onnxruntime-gpu
+#   Requires CUDA 11.8+ and cuDNN 8.x
+
+opencv-python>=4.8.0
+insightface>=0.7.3
+onnxruntime>=1.16.0
+numpy>=1.24.0
+Pillow>=10.0.0
